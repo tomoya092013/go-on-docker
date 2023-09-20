@@ -3,7 +3,7 @@ WORKDIR /go/src/app
 
 COPY ./. .
 
-RUN go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+RUN go install -tags postgres github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 RUN go mod download
 
