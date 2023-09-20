@@ -1,7 +1,9 @@
-FROM golang:1.18.5-buster
+FROM golang:1.21.1-bullseye
 WORKDIR /go/src/app
 
 COPY ./. .
+
+RUN go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 RUN go mod download
 
