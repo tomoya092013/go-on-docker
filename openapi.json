@@ -1,0 +1,274 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "API定義例",
+    "description": "サンプルのAPI定義",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "ローカル環境"
+    }
+  ],
+  "tags": [
+    {
+      "name": "todoList"
+    }
+  ],
+  "paths": {
+    "/todos": {
+      "get": {
+        "tags": [
+          "todo"
+        ],
+        "summary": "todoListを取得",
+        "description": "todoListを取得する",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "登録成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "不正な入力値"
+          },
+          "500": {
+            "description": "サーバーエラー"
+          }
+        }
+      }
+    },
+    "/todo": {
+      "post": {
+        "tags": [
+          "todo"
+        ],
+        "summary": "todoを登録",
+        "description": "新しいtodoを登録します",
+        "operationId": "addTodo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "登録成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "不正な入力値"
+          },
+          "500": {
+            "description": "サーバーエラー"
+          }
+        }
+      }
+    },
+    "/todo/{id}": {
+      "get": {
+        "tags": [
+          "todo"
+        ],
+        "summary": "todoを取得",
+        "description": "todoIdを指定して更新する",
+        "parameters": [
+          {
+            "name": "todoId",
+            "in": "query",
+            "description": "TodoID",
+            "required": true,
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "request": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "不正な入力値"
+          },
+          "500": {
+            "description": "サーバーエラー"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "todo"
+        ],
+        "summary": "todoを更新",
+        "description": "todoIdを指定して更新する",
+        "parameters": [
+          {
+            "name": "todoId",
+            "in": "query",
+            "description": "TodoID",
+            "required": true,
+            "explode": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "request": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TodoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "更新成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "不正な入力値"
+          },
+          "500": {
+            "description": "サーバーエラー"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "todo"
+        ],
+        "summary": "todoを削除",
+        "description": "idを指定してtodoを削除します",
+        "operationId": "deleteTodo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "todoのid",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "削除成功",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TodoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "不正な入力値"
+          },
+          "500": {
+            "description": "サーバーエラー"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "TodoRequest": {
+        "type": "object",
+        "properties": {
+          "todoId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 198772
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "todoId",
+          "title"
+        ]
+      },
+      "TodoResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "example": 10
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64",
+            "example": 198772
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "todoId",
+          "title"
+        ]
+      }
+    }
+  }
+}
