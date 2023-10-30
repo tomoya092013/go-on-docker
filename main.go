@@ -20,36 +20,12 @@ type Todo struct {
 	Priority int
 }
 
-func main() {
-	router := gin.Default()
-	USER, PASSWORD, PORT, DBNAME :=  GetEnv()
-	postgresPass := "postgresql://" + USER + ":" + PASSWORD + "@db" + ":" + PORT + "/" + DBNAME
-
-	router.GET("/todos", func(c *gin.Context) {
-		GetTodos(c, postgresPass)
-	})
-
-	router.GET("/todo/:id", func(c *gin.Context) {
-		ShowTodo(c, postgresPass)
-	})
-
-	router.POST("/todo", func(c *gin.Context) {
-		CreateTodo(c, postgresPass)
-	})
-
-	router.PATCH("/todo/:id", func(c *gin.Context) {
-		UpdateTodo(c, postgresPass)
-	})
-
-	router.DELETE("/todo/:id", func(c *gin.Context) {
-		DeleteTodo(c, postgresPass)
-	})
-
-	router.Run(":8080")
+type TodoController struct {
+  postgresPass string
 }
 
-func GetTodos(c *gin.Context, postgresPass string) {
-	db, err := gorm.Open(postgres.Open(postgresPass), &gorm.Config{})
+func (c *TodoController) GetTodos(ctx *gin.Context) {
+	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
 	if err != nil {
 		errorMessage := err.Error()
 		fmt.Println("DB接続エラー")
@@ -60,15 +36,15 @@ func GetTodos(c *gin.Context, postgresPass string) {
 	var todos []Todo
   db.Find(&todos)
 
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todos": todos,
 	})
 }
 
-func ShowTodo(c *gin.Context, postgresPass string) {
-	id := c.Param("id")
-	db, err := gorm.Open(postgres.Open(postgresPass), &gorm.Config{})
+func (c *TodoController) ShowTodo(ctx *gin.Context) {
+	id := ctx.Param("id")
+	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
 	if err != nil {
 		errorMessage := err.Error()
 		fmt.Println("DB接続エラー")
@@ -79,14 +55,14 @@ func ShowTodo(c *gin.Context, postgresPass string) {
 	var todo Todo
   db.First(&todo, id)
 
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todo": todo,
 	})
 }
 
-func CreateTodo(c *gin.Context, postgresPass string) {
-	db, err := gorm.Open(postgres.Open(postgresPass), &gorm.Config{})
+func (c *TodoController) CreateTodo(ctx *gin.Context) {
+	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
 	if err != nil {
 		errorMessage := err.Error()
 		fmt.Println("DB接続エラー")
@@ -95,18 +71,18 @@ func CreateTodo(c *gin.Context, postgresPass string) {
 	fmt.Println("DB接続に成功しました。")
 
 	var newTodo Todo
-	c.BindJSON(&newTodo);
+	ctx.BindJSON(&newTodo);
   db.Create(&newTodo)
 
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todo": newTodo,
 	})
 }
 
-func UpdateTodo(c *gin.Context, postgresPass string) {
-	id := c.Param("id")
-	db, err := gorm.Open(postgres.Open(postgresPass), &gorm.Config{})
+func (c *TodoController) UpdateTodo(ctx *gin.Context) {
+	id := ctx.Param("id")
+	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
 	if err != nil {
 		errorMessage := err.Error()
 		fmt.Println("DB接続エラー")
@@ -116,18 +92,18 @@ func UpdateTodo(c *gin.Context, postgresPass string) {
 
 	var updateTodo Todo
   db.First(&updateTodo, id)
-	c.BindJSON(&updateTodo);
+	ctx.BindJSON(&updateTodo);
 	db.Save(&updateTodo)
 	
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todo": updateTodo,
 	})
 } 
 
-func DeleteTodo(c *gin.Context, postgresPass string) {
-	id := c.Param("id")
-	db, err := gorm.Open(postgres.Open(postgresPass), &gorm.Config{})
+func (c *TodoController) DeleteTodo(ctx *gin.Context) {
+	id := ctx.Param("id")
+	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
 	if err != nil {
 		errorMessage := err.Error()
 		fmt.Println("DB接続エラー")
@@ -138,17 +114,16 @@ func DeleteTodo(c *gin.Context, postgresPass string) {
 	var deleteTodo Todo
   db.Delete(&deleteTodo, id)
 
-	c.JSON(http.StatusOK, gin.H{
+	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todo": deleteTodo,
 	})
 }
 
-
-func GetEnv() (string, string, string, string) {
+func GetEnv() (string, string, string, string, error) {
 	err := godotenv.Load("env/dev.env")
 	if err != nil {
-		fmt.Println(".envファイルがありません")
+		return "", "", "", "", err
 	}
 	user := os.Getenv("POSTGRES_USER")
 	password := os.Getenv("POSTGRES_PASSWORD")
@@ -156,5 +131,31 @@ func GetEnv() (string, string, string, string) {
 	port := os.Getenv("POSTGRES_PORT")
 	dbname := os.Getenv("POSTGRES_DBNAME")
 	
-	return user, password, port, dbname
+	return user, password, port, dbname, nil
+}
+
+func NewTodoController(postgresPass string) *TodoController {
+  return &TodoController{
+    postgresPass: postgresPass,
+  }
+}
+
+
+func main() {
+	router := gin.Default()
+	USER, PASSWORD, PORT, DBNAME, err :=  GetEnv()
+	if err != nil {
+		fmt.Println("環境変数エラー", err)
+		return
+	}
+	postgresPass := "postgresql://" + USER + ":" + PASSWORD + "@db" + ":" + PORT + "/" + DBNAME
+	todoController := NewTodoController(postgresPass)
+
+	router.GET("/todos", todoController.GetTodos)
+	router.GET("/todo/:id", todoController.ShowTodo)
+	router.POST("/todo", todoController.CreateTodo)
+	router.PATCH("/todo/:id", todoController.UpdateTodo)
+	router.DELETE("/todo/:id", todoController.DeleteTodo)
+
+	router.Run(":8080")
 }
