@@ -28,9 +28,7 @@ type TodoController struct {
 func (c *TodoController) GetTodos(ctx *gin.Context) {
 	var todos []Todo
   if err := c.db.Find(&todos).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -43,9 +41,7 @@ func (c *TodoController) ShowTodo(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var todo Todo
   if err := c.db.First(&todo, id).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
@@ -56,14 +52,10 @@ func (c *TodoController) ShowTodo(ctx *gin.Context) {
 func (c *TodoController) CreateTodo(ctx *gin.Context) {
 	var newTodo Todo
 	if err := ctx.BindJSON(&newTodo); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
   if err := c.db.Create(&newTodo).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
@@ -75,14 +67,10 @@ func (c *TodoController) UpdateTodo(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var updateTodo Todo
   if err := c.db.First(&updateTodo, id).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
 	if err := ctx.BindJSON(&updateTodo); err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
 	if err := c.db.Save(&updateTodo).Error;  err!= nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{
@@ -100,9 +88,7 @@ func (c *TodoController) DeleteTodo(ctx *gin.Context) {
 	id := ctx.Param("id")
 	var deleteTodo Todo
   if err := c.db.Delete(&deleteTodo, id).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{
-			"message": err.Error(),
-		})
+		c.handleError(ctx, http.StatusInternalServerError, err)
 	}
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -123,6 +109,12 @@ func GetEnv() (string, string, string, string, error) {
 	dbname := os.Getenv("POSTGRES_DBNAME")
 	
 	return user, password, port, dbname, nil
+}
+
+func (c *TodoController) handleError (ctx *gin.Context, status int, err error) {
+	ctx.JSON(status, gin.H{
+		"message": err.Error(),
+	})
 }
 
 func NewTodoController(db *gorm.DB) *TodoController {
