@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"net/http"
+	// "reflect"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -21,20 +22,16 @@ type Todo struct {
 }
 
 type TodoController struct {
-  postgresPass string
+  db *gorm.DB
 }
 
 func (c *TodoController) GetTodos(ctx *gin.Context) {
-	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
-	if err != nil {
-		errorMessage := err.Error()
-		fmt.Println("DB接続エラー")
-		panic(errorMessage)
-	}
-	fmt.Println("DB接続に成功しました。")
-
 	var todos []Todo
-  db.Find(&todos)
+  if err := c.db.Find(&todos).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
@@ -44,17 +41,12 @@ func (c *TodoController) GetTodos(ctx *gin.Context) {
 
 func (c *TodoController) ShowTodo(ctx *gin.Context) {
 	id := ctx.Param("id")
-	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
-	if err != nil {
-		errorMessage := err.Error()
-		fmt.Println("DB接続エラー")
-		panic(errorMessage)
-	}
-	fmt.Println("DB接続に成功しました。")
-
 	var todo Todo
-  db.First(&todo, id)
-
+  if err := c.db.First(&todo, id).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todo": todo,
@@ -62,18 +54,17 @@ func (c *TodoController) ShowTodo(ctx *gin.Context) {
 }
 
 func (c *TodoController) CreateTodo(ctx *gin.Context) {
-	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
-	if err != nil {
-		errorMessage := err.Error()
-		fmt.Println("DB接続エラー")
-		panic(errorMessage)
-	}
-	fmt.Println("DB接続に成功しました。")
-
 	var newTodo Todo
-	ctx.BindJSON(&newTodo);
-  db.Create(&newTodo)
-
+	if err := ctx.BindJSON(&newTodo); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
+  if err := c.db.Create(&newTodo).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
 		"todo": newTodo,
@@ -82,18 +73,22 @@ func (c *TodoController) CreateTodo(ctx *gin.Context) {
 
 func (c *TodoController) UpdateTodo(ctx *gin.Context) {
 	id := ctx.Param("id")
-	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
-	if err != nil {
-		errorMessage := err.Error()
-		fmt.Println("DB接続エラー")
-		panic(errorMessage)
-	}
-	fmt.Println("DB接続に成功しました。")
-
 	var updateTodo Todo
-  db.First(&updateTodo, id)
-	ctx.BindJSON(&updateTodo);
-	db.Save(&updateTodo)
+  if err := c.db.First(&updateTodo, id).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
+	if err := ctx.BindJSON(&updateTodo); err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
+	if err := c.db.Save(&updateTodo).Error;  err!= nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
 	
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
@@ -103,16 +98,12 @@ func (c *TodoController) UpdateTodo(ctx *gin.Context) {
 
 func (c *TodoController) DeleteTodo(ctx *gin.Context) {
 	id := ctx.Param("id")
-	db, err := gorm.Open(postgres.Open(c.postgresPass), &gorm.Config{})
-	if err != nil {
-		errorMessage := err.Error()
-		fmt.Println("DB接続エラー")
-		panic(errorMessage)
-	}
-	fmt.Println("DB接続に成功しました。")
-
 	var deleteTodo Todo
-  db.Delete(&deleteTodo, id)
+  if err := c.db.Delete(&deleteTodo, id).Error; err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{
+			"message": err.Error(),
+		})
+	}
 
 	ctx.JSON(http.StatusOK, gin.H{
 		"message": "ok",
@@ -134,23 +125,31 @@ func GetEnv() (string, string, string, string, error) {
 	return user, password, port, dbname, nil
 }
 
-func NewTodoController(postgresPass string) *TodoController {
+func NewTodoController(db *gorm.DB) *TodoController {
   return &TodoController{
-    postgresPass: postgresPass,
+    db: db,
   }
 }
 
 
 func main() {
 	router := gin.Default()
+
 	USER, PASSWORD, PORT, DBNAME, err :=  GetEnv()
 	if err != nil {
 		fmt.Println("環境変数エラー", err)
 		return
 	}
 	postgresPass := "postgresql://" + USER + ":" + PASSWORD + "@db" + ":" + PORT + "/" + DBNAME
-	todoController := NewTodoController(postgresPass)
+	db, err := gorm.Open(postgres.Open(postgresPass), &gorm.Config{})
+	if err != nil {
+		fmt.Println("DB接続エラー", err)
+		return
+	}
+	// defer db.Close()
+	// fmt.Println("かた",reflect.TypeOf(db))
 
+	todoController := NewTodoController(db)
 	router.GET("/todos", todoController.GetTodos)
 	router.GET("/todo/:id", todoController.ShowTodo)
 	router.POST("/todo", todoController.CreateTodo)
